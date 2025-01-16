@@ -69,7 +69,7 @@ jobs:
         if: env.BUILD_NEEDED == 'true'
         uses: docker/build-push-action@v5
         with:
-          context: ./caddy
+          context: ./
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/caddy:${{ env.CADDY_VERSION }}
