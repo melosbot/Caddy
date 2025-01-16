@@ -1,0 +1,12 @@
+services:
+  caddy:
+    image: melosbot/caddy:latest
+    container_name: caddy
+    network_mode: host
+    volumes:
+      - /root/apps/caddy/caddyfile:/etc/caddy
+      - /root/apps/caddy/websites:/srv
+      - /root/apps/caddy/logs:/var/log/caddy
+      - /root/apps/caddy/data:/data
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    restart: unless-stopped
