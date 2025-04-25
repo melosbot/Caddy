@@ -6,6 +6,7 @@ RUN xcaddy build \
     --with github.com/greenpau/caddy-git \
     --with github.com/greenpau/caddy-trace \
     --with github.com/caddy-dns/cloudflare \
+    --with github.com/caddyserver/cache-handler \
     --with github.com/caddyserver/transform-encoder 
 
 FROM caddy:${CADDY_VERSION}
