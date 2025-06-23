@@ -7,7 +7,8 @@ RUN xcaddy build \
     --with github.com/greenpau/caddy-trace \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/caddyserver/cache-handler \
-    --with github.com/caddyserver/transform-encoder 
+    --with github.com/caddyserver/transform-encoder \
+    --with github.com/porech/caddy-maxmind-geolocation
 
 FROM caddy:${CADDY_VERSION}
 
