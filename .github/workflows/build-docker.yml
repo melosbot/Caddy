@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write # 新增权限，允许推送到GitHub Packages (GHCR)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,17 +30,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to DockerHub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for new Caddy version
         id: check-version
         run: |
           # 获取可用的 Docker 标签
-          AVAILABLE_TAGS=$(curl -s https://registry.hub.docker.com/v2/repositories/library/caddy/tags?page_size=100 | jq -r '.results[].name')
+          AVAILABLE_TAGS=$(curl -s "https://registry.hub.docker.com/v2/repositories/library/caddy/tags/?page_size=100" | jq -r '.results[].name')
           echo "Available Docker tags:"
           echo "$AVAILABLE_TAGS"
           
@@ -61,31 +63,34 @@ jobs:
           fi
           
           if [ "$MATCHING_TAG" != "$CURRENT_VERSION" ]; then
-            echo "New version detected"
+            echo "New version detected, build needed."
             echo "BUILD_NEEDED=true" >> $GITHUB_ENV
           else
-            echo "No new version"
+            echo "No new version, build not needed for scheduled run."
             echo "BUILD_NEEDED=false" >> $GITHUB_ENV
           fi
 
       - name: Build and push Docker image
-        if: env.BUILD_NEEDED == 'true'
+        # 如果是手动触发(workflow_dispatch)或检测到新版本，则执行此步骤
+        if: env.BUILD_NEEDED == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v5
         with:
           context: ./
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/caddy:${{ env.CADDY_VERSION }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/caddy:latest
+            ghcr.io/${{ github.repository_owner }}/caddy:${{ env.CADDY_VERSION }}
+            ghcr.io/${{ github.repository_owner }}/caddy:latest
           build-args: |
             CADDY_VERSION=${{ env.CADDY_VERSION }}
 
       - name: Update version file
+        # 仅在定时任务检测到新版本时更新文件
         if: env.BUILD_NEEDED == 'true'
         run: echo ${{ env.CADDY_VERSION }} > .caddy-version
 
       - name: Commit and push if version changed
+        # 仅在定时任务检测到新版本时提交更改
         if: env.BUILD_NEEDED == 'true'
         run: |
           git add .caddy-version
